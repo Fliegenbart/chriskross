@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Lead } from "@/lib/types";
 import { guessWebsiteFromEmail, scrapeCompany } from "@/lib/scraper";
-import { generateMail } from "@/lib/claude";
+import { generateMail, ToneProfile } from "@/lib/claude";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { lead: Lead; variantSeed?: number };
+    const body = (await req.json()) as {
+      lead: Lead;
+      variantSeed?: number;
+      toneProfile?: ToneProfile;
+    };
     const lead = body.lead;
     if (!lead) return NextResponse.json({ error: "Missing lead" }, { status: 400 });
 
@@ -22,7 +26,12 @@ export async function POST(req: NextRequest) {
       scraped = await scrapeCompany(websiteUrl);
     }
 
-    const result = await generateMail(lead, scraped, body.variantSeed ?? 1);
+    const result = await generateMail(
+      lead,
+      scraped,
+      body.variantSeed ?? 1,
+      body.toneProfile ?? null
+    );
 
     const enriched: Lead = {
       ...lead,

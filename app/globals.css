@@ -1,6 +1,221 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: #fbf7ef;
+  --color-paper-alt: #f2ecde;
+  --color-paper-deep: #eae2cf;
+  --color-ink: #1a1714;
+  --color-ink-muted: #5c5247;
+  --color-ink-soft: #8a7f72;
+  --color-ink-whisper: #b6ac9c;
+  --color-tomato: #d2302c;
+  --color-tomato-deep: #9f1e1b;
+  --color-tomato-soft: #f3d9d7;
+  --color-basil: #3f5e3f;
+  --color-basil-soft: #d7e0ce;
+  --color-ochre: #d9a441;
+  --color-ochre-soft: #f6e7c2;
+  --color-crust: #c4917a;
+  --color-crust-soft: #e6d3c1;
+
+  --font-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
 html,
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Warm paper grain overlay — fixed, subtle, multiply-blended */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+::selection {
+  background: var(--color-tomato);
+  color: var(--color-paper);
+}
+
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+/* ————— Animations ————— */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes stampDown {
+  0% {
+    opacity: 0;
+    transform: scale(2) rotate(-20deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.9) rotate(-9deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-7deg);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.anim-fade-up {
+  animation: fadeUp 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.anim-fade-in {
+  animation: fadeIn 0.8s ease both;
+}
+.anim-flicker {
+  animation: flicker 1.2s ease-in-out infinite;
+}
+.anim-stamp {
+  animation: stampDown 0.5s cubic-bezier(0.3, 1.6, 0.4, 1) both;
+}
+.anim-marquee {
+  animation: marquee 55s linear infinite;
+}
+.anim-soft-pulse {
+  animation: softPulse 1.6s ease-in-out infinite;
+}
+
+/* Ticket-style perforation trim */
+.ticket-edge-bottom {
+  --c: var(--color-paper);
+  background-image: radial-gradient(circle at 12px 12px, var(--c) 6px, transparent 7px);
+  background-size: 24px 12px;
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+}
+
+.shadow-card {
+  box-shadow:
+    0 1px 0 rgba(26, 23, 20, 0.05),
+    0 1px 3px rgba(26, 23, 20, 0.06),
+    0 12px 32px -18px rgba(26, 23, 20, 0.12);
+}
+
+.shadow-card-lift {
+  box-shadow:
+    0 1px 0 rgba(26, 23, 20, 0.08),
+    0 2px 6px rgba(26, 23, 20, 0.08),
+    0 22px 60px -28px rgba(26, 23, 20, 0.22);
+}
+
+/* Pretty scrollbar (textarea) */
+.scroll-paper {
+  scrollbar-color: var(--color-ink-whisper) transparent;
+  scrollbar-width: thin;
+}
+
+/* Callout frame for the hook */
+.hook-frame {
+  background:
+    linear-gradient(var(--color-ochre-soft), var(--color-ochre-soft)) padding-box;
+  border: 1px dashed var(--color-ochre);
+}
+
+/* Masthead rule */
+.rule-tomato {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-tomato) 0%, var(--color-tomato) 60%, transparent 100%);
+}
+
+/* Number Nº pseudo */
+.num-label::before {
+  content: "Nº ";
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-ink-soft);
+  margin-right: 0.1em;
+}
+
+/* Dashed divider */
+.dash-divider {
+  background-image: linear-gradient(90deg, var(--color-crust) 50%, transparent 50%);
+  background-size: 8px 1px;
+  background-repeat: repeat-x;
+  background-position: 0 center;
+  height: 1px;
+}
+
+/* Kbd-style token */
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background: var(--color-paper-alt);
+  border: 1px solid var(--color-crust-soft);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--color-ink-muted);
 }

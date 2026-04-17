@@ -9,6 +9,13 @@ function getClient(): Anthropic {
   return new Anthropic({ apiKey: key });
 }
 
+export type ToneProfile = {
+  examples: string[];
+  frechness: number;
+  length: number;
+  notes: string;
+};
+
 const SYSTEM_PROMPT = `Du bist Texter:in für Chriss Kross Pizza — ein Hamburger Catering-Service mit neapolitanischer Pizza aus dem mobilen Pferdeanhänger. Zielgruppe: Firmen, die Events, Sommerfeste, Kundenevents, Teamfeiern, Weihnachtsfeiern o.Ä. planen.
 
 Deine Aufgabe: B2B-Kaltakquise-Mails schreiben. Ton: frech, kurz, Chuzpe, ein bisschen Sixt-Style — Wortwitz erlaubt, aber nie plump oder herablassend. Kein Corporate-Blabla.
@@ -52,6 +59,47 @@ OUTPUT-FORMAT: Antworte NUR mit einem JSON-Objekt in dieser Form:
 
 Kein Markdown, kein Code-Fence, nur das JSON.`;
 
+function describeFrechness(v: number): string {
+  if (v < 25) return "sehr formal, sachlich, zurückhaltend — keine Puns, keine Chuzpe";
+  if (v < 50) return "höflich-pointiert — leichter Wortwitz erlaubt, aber seriös";
+  if (v < 75) return "frech und direkt — Puns, Sixt-Style, Chuzpe mit Augenzwinkern";
+  return "Chuzpe Maximale — maximal frech, pointiert, keine Scheu vor Wortwitz";
+}
+
+function describeLength(v: number): string {
+  if (v < 25) return "sehr knapp, Ziel ≈ 50 Wörter, max 3 Sätze Body";
+  if (v < 50) return "knapp, Ziel ≈ 90 Wörter";
+  if (v < 75) return "mittel, Ziel ≈ 130 Wörter";
+  return "ausführlicher, Ziel ≈ 180 Wörter (aber nie schwafeln)";
+}
+
+function buildToneAddendum(profile: ToneProfile | null | undefined): string | null {
+  if (!profile) return null;
+  const hasCustom =
+    profile.examples.some((e) => (e ?? "").trim().length > 20) ||
+    profile.frechness !== 70 ||
+    profile.length !== 35 ||
+    (profile.notes ?? "").trim().length > 0;
+  if (!hasCustom) return null;
+
+  const lines: string[] = [
+    "TONALITÄTS-FEINJUSTAGE (User-spezifisch — überschreibt bei Konflikten die Beispiel-Mail oben):",
+    `- Frechness-Level: ${profile.frechness}/100 → ${describeFrechness(profile.frechness)}`,
+    `- Länge: ${profile.length}/100 → ${describeLength(profile.length)}`,
+  ];
+  if ((profile.notes ?? "").trim()) {
+    lines.push(`- Zusätzliche Notiz: ${profile.notes.trim()}`);
+  }
+  const ex = profile.examples.map((e) => (e ?? "").trim()).filter((e) => e.length > 20);
+  if (ex.length > 0) {
+    lines.push("", "REFERENZ-MAILS (Stil-Inspiration, NICHT kopieren):");
+    ex.forEach((e, i) => {
+      lines.push(`--- Referenz ${i + 1} ---`, e, "---");
+    });
+  }
+  return lines.join("\n");
+}
+
 function buildUserPrompt(lead: Lead, scraped: string | null, variantSeed: number): string {
   const anrede = (() => {
     if (lead.gender === "f") return `Sehr geehrte Frau ${lead.lastName}`;
@@ -86,20 +134,40 @@ function extractJson(text: string): unknown {
   return JSON.parse(slice);
 }
 
-export async function generateMail(lead: Lead, scraped: string | null, variantSeed = 1): Promise<EnrichmentResult> {
+export async function generateMail(
+  lead: Lead,
+  scraped: string | null,
+  variantSeed = 1,
+  toneProfile: ToneProfile | null = null
+): Promise<EnrichmentResult> {
   const client = getClient();
   const userPrompt = buildUserPrompt(lead, scraped, variantSeed);
+
+  const systemBlocks: Array<{
+    type: "text";
+    text: string;
+    cache_control?: { type: "ephemeral" };
+  }> = [
+    {
+      type: "text",
+      text: SYSTEM_PROMPT,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  const toneAddendum = buildToneAddendum(toneProfile);
+  if (toneAddendum) {
+    systemBlocks.push({
+      type: "text",
+      text: toneAddendum,
+      cache_control: { type: "ephemeral" },
+    });
+  }
 
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: [
-      {
-        type: "text",
-        text: SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
+    system: systemBlocks,
     messages: [{ role: "user", content: userPrompt }],
   });
 
